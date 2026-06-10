@@ -3,10 +3,8 @@ import os
 from app.schemas.assessment import AssessmentInput, AssessmentOutput, FoodRecommendation
 from app.models.health_model import ObesityModelWrapper
 
-# Load Model AI
 ai_model = ObesityModelWrapper()
 
-# Load Data Makanan
 DATA_PATH = os.path.join(os.path.dirname(__file__), "../data/food_nutrition.json")
 try:
     with open(DATA_PATH, "r") as file:
@@ -15,17 +13,14 @@ except FileNotFoundError:
     FOOD_DATA = [{"name": "Sayur Bayam", "calories": 40, "protein": 3.0, "carbs": 6.0, "fat": 0.0}]
 
 def process_assessment(data: AssessmentInput) -> AssessmentOutput:
-    # 1. Dapatkan hasil prediksi dari model .pkl
     status = ai_model.predict(data.age, data.gender, data.height_cm, data.weight_kg)
-    
-    # 2. Tentukan deskripsi
+
     status_lower = status.lower()
     if "obesity" in status_lower or "overweight" in status_lower:
         desc = "AI mendeteksi berat badan berlebih. Berikut rekomendasi makanan rendah kalori."
     else:
         desc = "Berat badan Anda tergolong normal/kurang. Pertahankan pola makan sehat."
 
-    # 3. Filter makanan dari memori
     rekomendasi = []
     for food in FOOD_DATA:
         if "obesity" in status_lower or "overweight" in status_lower:
@@ -38,5 +33,5 @@ def process_assessment(data: AssessmentInput) -> AssessmentOutput:
     return AssessmentOutput(
         status=status,
         description=desc,
-        recommendations=rekomendasi[:5] # Batasi 5 makanan saja
+        recommendations=rekomendasi[:5]
     )

@@ -4,131 +4,298 @@ import joblib
 import json
 import os
 
-st.set_page_config(page_title="Calfit - AI Health Assessment", page_icon="🥗", layout="centered")
-
-# Gunakan fungsi ini agar Streamlit mencari file berdasarkan posisi file app.py berada
-# =====================================================================
-# GANTI FUNGSI LOAD MODEL & DATA ANDA DENGAN KODE AUTO-DETECT INI
-# =====================================================================
+st.set_page_config(
+    page_title="CalFit - Mari Jaga Kesehatan",
+    page_icon="❤️",
+    layout="wide"
+)
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
+# LOAD MODEL
 @st.cache_resource
 def load_ml_model():
-    # Streamlit akan otomatis mencari di 3 lokasi kemungkinan ini:
     possibilities = [
-        os.path.join(BASE_DIR, "app", "models", "obesity_model.pkl"), # Lokasi standar FastAPI
-        os.path.join(BASE_DIR, "models", "obesity_model.pkl"),       # Lokasi standar Streamlit
-        os.path.join(BASE_DIR, "obesity_model.pkl")                  # Jika ditaruh di luar langsung
+        os.path.join(BASE_DIR, "app", "models", "obesity_model.pkl"),
+        os.path.join(BASE_DIR, "models", "obesity_model.pkl"),
+        os.path.join(BASE_DIR, "obesity_model.pkl")
     ]
-    
-    model_path = None
+
     for path in possibilities:
         if os.path.exists(path):
-            model_path = path
-            break
-            
-    # Jika di 3 lokasi tersebut tetap tidak ada, tampilkan isi folder ke layar web
-    if model_path is None:
-        st.error("❌ **File Model 'obesity_model.pkl' Tidak Ditemukan di Lokasi Manapun!**")
-        st.write("Streamlit sudah mencari di jalur berikut tetapi semuanya kosong:")
-        for path in possibilities:
-            st.code(path)
-            
-        st.write("📂 **Isi folder utama proyek Anda saat ini adalah:**")
-        st.code(os.listdir(BASE_DIR))
-        st.info("💡 **Solusi:** Silakan periksa File Finder Mac Anda, lalu pastikan file 'obesity_model.pkl' dimasukkan ke salah satu folder di atas.")
-        st.stop()
-        
-    return joblib.load(model_path)
+            return joblib.load(path)
 
+    st.error("Model obesity_model.pkl tidak ditemukan")
+    st.stop()
 
+# LOAD FOOD DATA
+@st.cache_data
 @st.cache_data
 def load_food_data():
     possibilities = [
-        os.path.join(BASE_DIR, "app", "data", "food_nutrition.json"),
-        os.path.join(BASE_DIR, "data", "food_nutrition.json"),
-        os.path.join(BASE_DIR, "food_nutrition.json")
+        os.path.join(BASE_DIR, "app", "data", "Food_Nutrition_Dataset.json"),
+        os.path.join(BASE_DIR, "data", "Food_Nutrition_Dataset.json"),
+        os.path.join(BASE_DIR, "Food_Nutrition_Dataset.json")
     ]
-    
-    data_path = None
+
     for path in possibilities:
         if os.path.exists(path):
-            data_path = path
-            break
+            with open(path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            if isinstance(data, dict):
+                return data.get("foods", [])
+            elif isinstance(data, list):
+                return data
             
-    if data_path is not None:
-        with open(data_path, "r") as file:
-            return json.load(file)
-    else:
-        # Cadangan data jika file JSON tidak ketemu
-        return [
-            {"name": "Salad Sayur Segar", "calories": 120, "protein": 3.0, "carbs": 12.0, "fat": 1.0},
-            {"name": "Dada Ayam Panggang", "calories": 165, "protein": 31.0, "carbs": 0.0, "fat": 3.6}
-        ]
+    st.error("Food_Nutrition_Dataset.json tidak ditemukan")
+    return []
 
-# Jalankan pemuatan
 pipeline = load_ml_model()
 food_data = load_food_data()
 
-st.title("🥗 Calfit")
-st.subheader("Cek Status Obesitas & Rekomendasi Makanan Sehat")
-st.write("Masukkan data fisik Anda untuk dianalisis oleh Machine Learning secara instan.")
+# FUNCTIONS
+
+def calculate_bmi(weight, height_cm):
+    h = height_cm / 100
+    return round(weight / (h * h), 2)
+
+def bmi_category(bmi):
+    if bmi < 18.5:
+        return "Underweight"
+    elif bmi < 25:
+        return "Normal"
+    elif bmi < 30:
+        return "Overweight"
+    else:
+        return "Obese"
+
+def calculate_bmr(gender, weight, height, age):
+    if gender == "Male":
+        return (
+            10 * weight
+            + 6.25 * height
+            - 5 * age
+            + 5
+        )
+    else:
+        return (
+            10 * weight
+            + 6.25 * height
+            - 5 * age
+            - 161
+        )
+
+def calorie_target(
+    current_weight,
+    target_weight,
+    weeks,
+    maintenance_calories
+):
+    diff = current_weight - target_weight
+    if diff <= 0:
+        return maintenance_calories + 250
+    total_deficit = diff * 7700
+    daily_deficit = total_deficit / (weeks * 7)
+    target = maintenance_calories - daily_deficit
+    return max(1200, int(target))
+
+def get_food_recommendation(foods, calorie_target):
+    recommendations = []
+    for food in foods:
+        calories = float(food.get("calories", 0))
+        if calories <= 0:
+            continue
+        protein = float(food.get("protein", 0))
+        fat = float(food.get("fat", 0))
+        score = (
+            protein * 3
+            - fat * 0.5
+            - calories * 0.01
+        )
+        recommendations.append({
+            "food_name": food.get("food_name", "Unknown"),
+            "category": food.get("category", ""),
+            "calories": calories,
+            "protein": protein,
+            "carbs": float(food.get("carbs", 0)),
+            "fat": fat,
+            "score": score
+        })
+
+    recommendations.sort(
+        key=lambda x: x["score"],
+        reverse=True
+    )
+
+    return recommendations[:10]
+
+# HEADER
+st.title("💪 CalFit")
+
+st.markdown("""
+CalFit membantu Anda:
+
+✅ Menghitung BMI  
+✅ Prediksi status obesitas
+✅ Menghitung kebutuhan kalori harian  
+✅ Menentukan target berat badan  
+✅ Memberikan rekomendasi makanan sehat
+""")
 
 st.divider()
 
-# Membuat Layout 2 Kolom untuk Form Input
+
+# INPUT
 col1, col2 = st.columns(2)
 
 with col1:
-    gender = st.selectbox("Jenis Kelamin", ["Male", "Female"], format_func=lambda x: "Laki-laki" if x == "Male" else "Perempuan")
-    age = st.number_input("Usia (Tahun)", min_value=1, max_value=120, value=25)
+    gender = st.selectbox(
+        "Jenis Kelamin",
+        ["Male", "Female"]
+    )
+
+    age = st.number_input(
+        "Usia",
+        min_value=1,
+        max_value=100,
+        value=20
+    )
+
+    height_cm = st.number_input(
+        "Tinggi Badan (cm)",
+        min_value=100,
+        max_value=250,
+        value=170
+    )
 
 with col2:
-    height_cm = st.number_input("Tinggi Badan (cm)", min_value=50, max_value=250, value=170)
-    weight_kg = st.number_input("Berat Badan (kg)", min_value=1, max_value=300, value=70)
+    weight_kg = st.number_input(
+        "Berat Badan Saat Ini (kg)",
+        min_value=20,
+        max_value=300,
+        value=70
+    )
 
-# Tombol untuk Eksekusi Analisis
-if st.button("Mulai Analisis AI", type="primary", use_container_width=True):
-    with st.spinner("Model Machine Learning sedang menganalisis data Anda..."):
-        
-        # A. Siapkan Input Data untuk Model (Tinggi diubah ke meter sesuai dataset)
-        height_m = height_cm / 100.0
-        input_df = pd.DataFrame([{
-            'Age': age,
-            'Gender': gender,
-            'Height': height_m,
-            'Weight': weight_kg
-        }])
-        
-        # B. Prediksi Menggunakan Model ML .pkl
-        status_prediksi = pipeline.predict(input_df)[0]
-        status_clean = status_prediksi.replace("_", " ") # Rapikan teks (misal: Obesity_Type_I -> Obesity Type I)
-        
-        # C. Tampilkan Hasil Prediksi Utama
-        st.success(f"### Hasil Prediksi: **{status_clean}**")
-        
-        status_lower = status_prediksi.lower()
-        if "obesity" in status_lower or "overweight" in status_lower:
-            st.info("💡 **Catatan AI:** Terdeteksi adanya kelebihan berat badan. Sangat disarankan untuk mengatur pola makan harian dengan menu rendah kalori berikut.")
-            # Filter makanan rendah kalori (< 250 kcal)
-            rekomendasi = [f for f in food_data if f["calories"] < 250]
-        else:
-            st.info("💡 **Catatan AI:** Kondisi tubuh Anda tergolong baik/normal. Pertahankan dengan mengonsumsi makanan seimbang harian berikut.")
-            # Filter makanan kalori standar (> 150 kcal)
-            rekomendasi = [f for f in food_data if f["calories"] >= 150]
-            
-        # D. Tampilkan Rekomendasi Makanan Sehat
-        st.write("#### 📋 Saran Menu Makanan Harian Anda:")
-        
-        # Ambil maksimal 5 makanan teratas
-        for food in rekomendasi[:5]:
-            with st.container(border=True):
-                # Menampilkan nama makanan dan kalori secara berdampingan
-                f_col1, f_col2 = st.columns([3, 1])
-                f_col1.markdown(f"**{food['name']}**")
-                f_col1.caption(f"Protein: {food['protein']}g | Karbohidrat: {food['carbs']}g | Lemak: {food['fat']}g")
-                f_col2.button(f"🔥 {food['calories']} Kcal", key=food['name'], disabled=True)
+    target_weight = st.number_input(
+        "Target Berat Badan (kg)",
+        min_value=20,
+        max_value=300,
+        value=65
+    )
 
+    target_weeks = st.slider(
+        "Target Waktu (Minggu)",
+        1,
+        24,
+        8
+    )
+
+# ANALYZE
+if st.button(
+    "🚀 Analisis Sekarang",
+    type="primary",
+    use_container_width=True
+):
+    bmi = calculate_bmi(
+        weight_kg,
+        height_cm
+    )
+    bmi_status = bmi_category(bmi)
+
+    input_df = pd.DataFrame([{
+        "Age": age,
+        "Gender": gender,
+        "Height": height_cm / 100,
+        "Weight": weight_kg
+    }])
+    prediction = pipeline.predict(
+        input_df
+    )[0]
+
+    bmr = calculate_bmr(
+        gender,
+        weight_kg,
+        height_cm,
+        age
+    )
+
+    maintenance = int(bmr * 1.4)
+
+    target_calories = calorie_target(
+        weight_kg,
+        target_weight,
+        target_weeks,
+        maintenance
+    )
+
+    st.success("Analisis Berhasil")
+
+    metric1, metric2, metric3, metric4 = st.columns(4)
+
+    metric1.metric(
+        "BMI",
+        bmi
+    )
+
+    metric2.metric(
+        "Kategori BMI",
+        bmi_status
+    )
+
+    metric3.metric(
+        "Kalori Harian",
+        f"{target_calories} kcal"
+    )
+
+    metric4.metric(
+        "Prediksi AI",
+        prediction.replace("_", " ")
+    )
+
+    st.divider()
+
+    progress = min(
+        target_weight / weight_kg,
+        1.0
+    )
+
+    st.subheader("🎯 Progress Target")
+    st.progress(progress)
+
+    st.write(
+        f"Target berat badan: "
+        f"{target_weight} kg dalam "
+        f"{target_weeks} minggu"
+    )
+
+    st.divider()
+
+    st.subheader(
+        "🍽️ Rekomendasi Makanan"
+    )
+
+    recommendations = get_food_recommendation(
+        food_data,
+        target_calories
+    )
+
+    for food in recommendations:
+        with st.container(border=True):
+            c1, c2 = st.columns([3, 1])
+            c1.markdown(
+                f"### {food['food_name']}"
+            )
+            c1.write(
+                f"Protein : {food['protein']} g"
+            )
+            c1.write(
+                f"Karbohidrat : {food['carbs']} g"
+            )
+            c1.write(
+                f"Lemak : {food['fat']} g"
+            )
+            c2.metric(
+                "Kalori",
+                f"{food['calories']} kcal"
+            )
 st.divider()
-st.caption("© 2026 Calfit - Aplikasi Sekali Pakai Tanpa Database Berbasis Streamlit & ML.")

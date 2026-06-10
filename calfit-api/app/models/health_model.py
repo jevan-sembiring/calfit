@@ -15,7 +15,6 @@ class ObesityModelWrapper:
             raise FileNotFoundError("File obesity_model.pkl tidak ditemukan!")
 
     def predict(self, age: int, gender: str, height_cm: float, weight_kg: float) -> str:
-        # Menyesuaikan tinggi dalam meter sesuai kebiasaan dataset
         height_m = height_cm / 100.0 
         
         input_data = pd.DataFrame([{
