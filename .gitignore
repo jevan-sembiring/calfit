@@ -1,2 +1,13 @@
+# Sistem Operasi
 .DS_Store
 **/.DS_Store
+
+# Python & Virtual Environment
+__pycache__/
+*.pyc
+venv/
+.venv/
+.env
+
+# Jupyter Notebook (Sering menghasilkan folder tersembunyi)
+.ipynb_checkpoints/
