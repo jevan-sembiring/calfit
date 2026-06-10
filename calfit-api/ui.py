@@ -186,7 +186,7 @@ with col2:
     target_weeks = st.slider(
         "Target Waktu (Minggu)",
         1,
-        24,
+        28,
         8
     )
 
@@ -248,7 +248,7 @@ if st.button(
     )
 
     metric4.metric(
-        "Prediksi AI",
+        "Prediksi Status",
         prediction.replace("_", " ")
     )
 
