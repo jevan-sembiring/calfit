@@ -1,6 +1,7 @@
 # Sistem Operasi
 .DS_Store
 **/.DS_Store
+calfit-api/**/.DS_Store
 
 # Python & Virtual Environment
 __pycache__/
