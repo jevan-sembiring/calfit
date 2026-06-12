@@ -67,7 +67,7 @@ pip install -r calfit-api/requirements.txt
 ### Jalankan Streamlit
 
 ```bash
-streamlit run calfit-api/ui.py
+streamlit run ui.py
 ```
 
 ### Jalankan Backend FastAPI
