@@ -19,16 +19,6 @@ API_URL = "http://localhost:8000/api/v1/assessment"
 
 st.title("💪 CalFit")
 
-st.markdown("""
-CalFit membantu Anda:
-
-✅ Menghitung BMI  
-✅ Prediksi status obesitas menggunakan Machine Learning  
-✅ Menghitung kebutuhan kalori harian  
-✅ Menentukan target berat badan  
-✅ Memberikan rekomendasi makanan sehat
-""")
-
 st.divider()
 
 # ==========================================================
