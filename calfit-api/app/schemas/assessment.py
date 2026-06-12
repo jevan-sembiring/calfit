@@ -10,7 +10,6 @@ class AssessmentInput(BaseModel):
     target_weight: float = Field(..., gt=0)
     target_weeks: int = Field(..., gt=0)
 
-
 class FoodRecommendation(BaseModel):
     food_name: str
     category: str
@@ -18,7 +17,6 @@ class FoodRecommendation(BaseModel):
     protein: float
     carbs: float
     fat: float
-
 
 class AssessmentOutput(BaseModel):
     bmi: float

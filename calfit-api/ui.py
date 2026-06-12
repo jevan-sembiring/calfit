@@ -118,10 +118,6 @@ if st.button(
 
         st.success("Analisis Berhasil")
 
-        # ==================================================
-        # METRICS
-        # ==================================================
-
         metric1, metric2, metric3, metric4 = st.columns(4)
 
         metric1.metric(
@@ -146,10 +142,6 @@ if st.button(
 
         st.divider()
 
-        # ==================================================
-        # TARGET
-        # ==================================================
-
         st.subheader("🎯 Target Berat Badan")
 
         st.write(
@@ -163,10 +155,6 @@ if st.button(
         )
 
         st.divider()
-
-        # ==================================================
-        # REKOMENDASI MAKANAN
-        # ==================================================
 
         st.subheader("🍽️ Rekomendasi Makanan")
 
@@ -228,5 +216,5 @@ if st.button(
 st.divider()
 
 st.caption(
-    "© 2026 CalFit - Smart Nutrition Recommendation System"
+    "CalFit"
 )

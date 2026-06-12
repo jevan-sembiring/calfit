@@ -50,13 +50,7 @@ class ObesityModelWrapper:
 
         return str(prediction[0])
 
-
-# ==================================================
-# Singleton model
-# ==================================================
-
 model = ObesityModelWrapper()
-
 
 def predict_obesity(
     age: int,
